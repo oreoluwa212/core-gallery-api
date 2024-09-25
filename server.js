@@ -7,9 +7,23 @@ dotenv.config();
 
 const app = express();
 
+// Determine the correct origin based on environment
+const allowedOrigins = [
+  'http://localhost:5173', // for local development
+  'https://core-gallery-shop.vercel.app' // production domain
+];
+
 // CORS configuration
 app.use(cors({
-    origin: 'http://localhost:5173', // Update this for production
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -19,6 +33,7 @@ app.use(express.json());
 // Uncomment if you have a static uploads directory
 // app.use('/uploads', express.static('uploads'));
 
+// Routes
 app.use('/api/auth', require('./src/routes/authRoute'));
 // app.use('/api/products', require('./src/routes/productRoutes'));
 
@@ -30,10 +45,10 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB connection error:', err));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
